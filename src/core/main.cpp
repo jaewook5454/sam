@@ -36,10 +36,10 @@ void signal_handler(int signal, siginfo_t *siginfo, void *context)
     int si_code;
 
     // abstract sender_pid from struct
-    stream << siginfo->si_pid;
-    sender_pid = stream.str();
-    sender_cmdline = "/proc/" + sender_pid + "/cmdline";
-    si_code = siginfo->si_code;
+    stream << siginfo->si_pid; //siginfo로 받은 프로세스 pid
+    sender_pid = stream.str(); //
+    sender_cmdline = "/proc/" + sender_pid + "/cmdline"; 
+    si_code = siginfo->si_code;//siginfo 시그널코드
 
     LOG_WARNING(MSGID_RECEIVED_SYS_SIGNAL, 4, PMLOGKFV("signal_no", "%d", signal),
                                               PMLOGKFV("signal_code", "%d", si_code),
@@ -48,7 +48,7 @@ void signal_handler(int signal, siginfo_t *siginfo, void *context)
                                               "received signal");
 
     buf = read_file(sender_cmdline.c_str());
-    if(buf.empty())
+    if(buf.empty())//"/proc/" + sender_pid + "/cmdline" 이 빌수가 있나?
     {
         LOG_WARNING(MSGID_RECEIVED_SYS_SIGNAL, 4, PMLOGKFV("signal_no", "%d", signal),
                                                   PMLOGKFV("signal_code", "%d", si_code),
@@ -56,7 +56,7 @@ void signal_handler(int signal, siginfo_t *siginfo, void *context)
                                                   PMLOGKFV("sender_uid", "%d", (int)siginfo->si_uid),
                                                   "fopen fail");
         goto Done;
-    }
+    }//buf가 비었으면 로그 찍고 done으로
 
     LOG_WARNING(MSGID_RECEIVED_SYS_SIGNAL, 5, PMLOGKFV("signal_no", "%d", signal),
                                               PMLOGKFV("signal_code", "%d", si_code),
@@ -68,12 +68,12 @@ void signal_handler(int signal, siginfo_t *siginfo, void *context)
 Done:
     if(signal == SIGHUP || signal == SIGINT || signal == SIGPIPE)
     {
-        LOG_WARNING(MSGID_RECEIVED_SYS_SIGNAL, 1, PMLOGKS("action", "ignore"), "just ignore");
+        LOG_WARNING(MSGID_RECEIVED_SYS_SIGNAL, 1, PMLOGKS("action", "ignore"), "just ignore");//SIGHUP,SIGINT, SIGPIPE는 무시
         return;
     }
     else
     {
-        LOG_WARNING(MSGID_RECEIVED_SYS_SIGNAL, 1, PMLOGKS("action", "terminate"), "sam process is now terminating");
+        LOG_WARNING(MSGID_RECEIVED_SYS_SIGNAL, 1, PMLOGKS("action", "terminate"), "sam process is now terminating");//나머지는 제거
     }
 
     service.stop();
@@ -84,10 +84,10 @@ int main(int argc, char **argv)
     LOG_INFO(MSGID_SAM_LOADING_SEQ, 1, PMLOGKS("status", "starting"), "");
 
     // tracking sender if we get some signal
-    struct sigaction act;
+    struct sigaction act; 
     sigemptyset(&act.sa_mask);
     act.sa_sigaction = signal_handler;
-    act.sa_flags = SA_SIGINFO;
+    act.sa_flags = SA_SIGINFO;//si_handler 대신 위의 signal_handler 
 
     // we will ignore this signal
     sigaction(SIGHUP, &act, NULL);
